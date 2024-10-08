@@ -1,0 +1,4 @@
+aiohttp==3.10.0
+matrix-nio==0.18.10
+jq
+bc
