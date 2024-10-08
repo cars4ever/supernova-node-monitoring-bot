@@ -1,0 +1,19 @@
+[Unit]
+Description=Supernova Node
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/usr/local/bin
+User=root
+Group=root
+SuccessExitStatus=SIGKILL 9
+ExecStart=/usr/local/bin/supernovad start
+ExecStop=/usr/bin/pkill -9 supernovad
+ExecStartPost=/bin/bash -c 'echo $MAINPID > /var/run/supernova.pid'
+Restart=no  # Prevent Monit from automatically restarting it
+RestartSec=10
+LimitNOFILE=50000
+
+[Install]
+WantedBy=multi-user.target
