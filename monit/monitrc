@@ -1,0 +1,35 @@
+set daemon  600            # check services at 600 seconds intervals (10 minutes)
+set logfile syslog facility log_daemon
+
+set eventqueue
+    basedir /var/lib/monit/events  # store Monit events
+    slots 100                      # limit queue size
+
+set httpd port 2812
+    use address 0.0.0.0  # Set to your server’s IP if needed
+    allow admin:monit    # Username: admin, Password: monit for accessing the web interface
+    allow 0.0.0.0/0      # Allow access from any IP range (you can restrict this for security)
+
+# Monitor the Supernova process (without restarting it automatically)
+check process supernova with pidfile /var/run/supernova.pid
+  if failed port 26657 protocol http then exec "/path/to/your/venv/bin/python3 /root/matrix-bot/supernova_bot.py '⚠️ Supernova node is not responding on port 26657'"
+
+# Monitor system memory usage
+check system my_server_memory
+  if memory usage > 90% then exec "/root/matrix-bot/supernova_alert.sh '⚠️ Memory usage is above 90%'"
+
+# Monitor Supernova block height
+check program supernova_block_progress with path "/root/matrix-bot/check_block_height.sh"
+  if status != 0 then exec "/root/matrix-bot/supernova_alert.sh '⚠️ Supernova node stuck at block for more than 5 minutes'"
+
+# Monitor Disk Usage
+check filesystem rootfs with path /
+  if space usage > 90% then exec "/root/matrix-bot/supernova_alert.sh '⚠️ Disk usage is above 90%'"
+
+# Monitor CPU Load
+check system my_server_cpu
+  if loadavg (1min) > 4 then exec "/root/matrix-bot/supernova_alert.sh '⚠️ High CPU load detected: 1 minute average'"
+
+# Monitor Network Connectivity
+check host google_dns with address 8.8.8.8
+  if failed icmp type echo count 3 with timeout 3 seconds then exec "/root/matrix-bot/supernova_alert.sh '⚠️ Network connectivity issue: Unable to reach DNS server 8.8.8.8'"
