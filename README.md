@@ -1,134 +1,178 @@
-# Supernova Node Monitoring Bot
+### Revised README.md File
 
-This repository contains scripts and configuration files for monitoring a Supernova node using Monit and a Matrix bot for alerts.
-
-### Features:
-- Monitors Supernova node block height.
-- Alerts on issues such as high memory usage, disk space usage, and CPU load.
-- Sends alerts to a Matrix room if the node becomes unresponsive or stuck.
+Here is a polished version of your **README.md** file for GitHub, including the updated instructions for securing the Monit monitoring page with an SSH tunnel and detailing steps for Windows users to set up port forwarding:
 
 ---
 
-## Installation Guide
+# **Supernova Node Monitoring Bot Setup**
 
-### 1. Clone the Repository
+This repository contains scripts and configurations to monitor a Supernova node and key system metrics, sending alerts to a Matrix room when issues arise.
+
+## **Features**
+
+- Monitors block height progression of the Supernova node to detect if it gets stuck.
+- Monitors key system metrics:
+  - **Memory usage**
+  - **Disk usage**
+  - **CPU load**
+  - **Network connectivity**
+- Sends real-time alerts to a Matrix room when issues are detected.
+  
+## **Setup Instructions**
+
+### **1. Clone the repository**
+
 ```bash
-git clone https://github.com/your-username/supernova-node-monitoring-bot.git
-cd supernova-node-monitoring-bot
+git clone https://github.com/your-repo/supernova-node-monitoring.git
+cd supernova-node-monitoring
 ```
 
-### 2. Set Up the Virtual Environment
-It’s recommended to set up the bot in a virtual environment to isolate dependencies:
-```bash
-python3 -m venv venv
-source venv/bin/activate
-```
+### **2. Install Dependencies**
 
-### 3. Install Dependencies
-Install all necessary Python packages using the `requirements.txt` file:
+Make sure Python and the necessary packages are installed:
+
 ```bash
 pip install -r requirements.txt
 ```
 
-### 4. Configure Monit
-Update your Monit configuration file to match your environment:
+### **3. Configure the Monitoring Scripts**
+
+Update the necessary files with your details:
+
+- **Matrix bot credentials** in `supernova_bot.py`.
+- **Node-specific settings** in `check_block_height.sh` and `supernova_alert.sh`.
+
+### **4. Configure Monit**
+
+Monit is used to monitor the Supernova node and system resources. Edit the `monitrc` configuration file to reflect your setup:
+
 ```bash
-sudo nano /etc/monit/monitrc
+nano /etc/monit/monitrc
 ```
 
-Make sure you have the following settings for monitoring:
+Make sure the Monit HTTP interface is set to only allow local access:
 
 ```bash
 set httpd port 2812
-    use address 0.0.0.0
-    allow admin:monit
-    allow 0.0.0.0/0
-
-check process supernova with pidfile /var/run/supernova.pid
-  if failed port 26657 protocol http then exec "/root/matrix-bot/venv/bin/python3 /root/matrix-bot/supernova_bot.py '⚠️ Supernova node is not responding on port 26657'"
-
-check system my_server_memory
-  if memory usage > 90% then exec "/root/matrix-bot/supernova_alert.sh '⚠️ Memory usage is above 90%'"
-
-check program supernova_block_progress with path "/root/matrix-bot/check_block_height.sh"
-  if status != 0 then exec "/root/matrix-bot/supernova_alert.sh '⚠️ Supernova node stuck at block for more than 5 minutes'"
-
-check host supernova_node with address 127.0.0.1
-  if failed port 26657 protocol http then exec "/root/matrix-bot/supernova_alert.sh '⚠️ Supernova node connection is offline'"
+    use address 127.0.0.1  # Restrict access to localhost or trusted IP
+    allow admin:monit      # Set a strong password
+    allow localhost        # Only allow local access
 ```
 
-### 5. Configure the Matrix Bot
-- Set up the Matrix bot credentials in the `supernova_bot.py` file to send alerts to your Matrix room.
-- Update the room ID and bot credentials in the Python script.
+### **5. Start Monit**
 
-```python
-client = AsyncClient("https://matrix.org", "@your-bot-username:matrix.org")
-await client.login("your-bot-password")
+After configuring Monit, restart the service:
 
-await client.room_send(
-    room_id="!your-matrix-room-id:matrix.org",
-    message_type="m.room.message",
-    content={
-        "msgtype": "m.text",
-        "body": message,
-    }
-)
-```
-
-### 6. Start Monitoring
-To start monitoring your Supernova node and receive alerts, ensure Monit is started:
 ```bash
-sudo service monit start
+sudo systemctl restart monit
 ```
 
-### 7. Additional Configuration
-- Modify the scripts (`supernova_alert.sh`, `check_block_height.sh`, etc.) according to your server setup.
-- Customize alerts, thresholds, and other settings based on your monitoring needs.
+You can verify the Monit status by running:
+
+```bash
+sudo monit status
+```
+
+## **Accessing the Monit Web Interface via SSH Tunnel**
+
+### **Option 1: SSH Tunnel with PuTTY on Windows**
+
+1. Download and install [PuTTY](https://www.putty.org/).
+2. Open PuTTY and set up a new SSH session to your VPS:
+   - **Host Name**: `your_vps_ip`
+   - **Port**: `22`
+3. In the **Tunnels** section, set up local port forwarding:
+   - **Source Port**: `2812`
+   - **Destination**: `127.0.0.1:2812`
+4. Save the session and connect. Now, you can access the Monit web interface by visiting `http://127.0.0.1:2812` in your local browser.
+
+### **Option 2: Using Plink on Windows (Command Line)**
+
+1. Open Command Prompt and run:
+
+```bash
+plink -ssh -N -L 2812:127.0.0.1:2812 your_username@your_vps_ip
+```
+
+This will create the SSH tunnel, and you can access the web interface at `http://127.0.0.1:2812`.
+
+### **Option 3: SSH Tunnel on Linux/Mac**
+
+For Linux or Mac users, you can simply run:
+
+```bash
+ssh -L 2812:127.0.0.1:2812 your_username@your_vps_ip
+```
+
+Once connected, open `http://127.0.0.1:2812` in your browser to access the Monit UI.
 
 ---
 
-## Supernova Bot Monitoring Setup Overview
+## **Bot Monitoring Alerts**
 
-The **Supernova Bot Monitoring Setup** is designed to monitor the health and performance of your **Supernova node** and key system metrics, and then automatically send alerts to a **Matrix room** when issues arise. The bot uses various scripts to track different aspects of the node's status and sends timely updates to keep everyone informed.
+The bot sends the following types of alerts to the Matrix room:
 
-### What Does It Monitor?
+### **Node Status Alerts**
+- **⚠️ Node is stuck at block `<block height>`** — Sent when the node stops processing new blocks.
+- **✅ Node is progressing. Current block: `<block height>`** — Sent when the node resumes block processing.
 
-1. **Node Block Progress**:
-   - The bot continuously checks if the **Supernova node** is processing new blocks.
-   - If the node gets stuck (i.e., the current block height does not increase), the bot will send a **warning** message to alert you that the node is stuck.
-   - Once the node recovers and starts progressing again, it will send a **recovery** message.
+### **System Resource Alerts**
+- **⚠️ Memory usage above 90%**
+- **⚠️ High CPU load detected**
+- **⚠️ Disk usage above 90%**
+- **⚠️ Network connectivity issue**
 
-2. **System Resource Usage**:
-   - **Memory Usage**: The bot monitors memory consumption. If memory usage exceeds a predefined threshold (90%), an alert will be sent. This helps prevent issues related to memory exhaustion.
-   - **CPU Load**: The bot also keeps track of the system’s CPU load. Alerts will be triggered if the CPU load exceeds specific thresholds for both 1-minute and 5-minute averages.
-   - **Disk Usage**: The bot monitors disk space usage and will send an alert if the disk space exceeds 90%. This prevents the node from running out of disk space, which can disrupt operations.
-
-3. **Network Connectivity**:
-   - The bot pings a known DNS server (`8.8.8.8` - Google DNS) to ensure that the server has internet connectivity. If it fails to connect, it will send an alert indicating a possible network issue.
-
-4. **Node Connection**:
-   - The bot checks the availability of the node’s RPC port (`26657`). If the RPC port is unresponsive, an alert will be sent, indicating the node might be offline or not communicating properly.
-
-### Messages You Will Receive
-
-The bot will relay the following types of messages to your **Matrix room**:
-
-1. **Node Status Alerts**:
-   - **⚠️ Warning: Node seems to be stuck at block `<block height>`** – Sent when the node stops processing new blocks.
-   - **✅ Node has recovered and is progressing. Current block: `<block height>`** – Sent when the node resumes block processing after being stuck.
-
-2. **System Alerts**:
-   - **⚠️ Memory usage is above 90%** – Sent if memory usage crosses the 90% threshold.
-   - **⚠️ High CPU load detected: 1 minute average** – Sent when the 1-minute CPU load average exceeds the threshold (default: > 4).
-   - **⚠️ Disk usage is above 90%** – Sent when disk usage exceeds 90%.
-   - **⚠️ Network connectivity issue: Unable to reach DNS server 8.8.8.8** – Sent when the server cannot connect to the internet.
-
-3. **Node Connection Alerts**:
-   - **⚠️ Supernova node is not responding on port 26657** – Sent when the node's RPC connection becomes unresponsive.
-   - **⚠️ Supernova node connection is offline** – Sent when there is an issue with the node connection itself.
+### **Node Connection Alerts**
+- **⚠️ Node is not responding on port 26657**
+- **⚠️ Node connection is offline**
 
 ---
 
-## How It Helps
+## **Security Considerations**
 
-This bot setup provides comprehensive monitoring of the node and system resources. It ensures the node is functioning optimally, sends real-time alerts for issues, and helps you address potential failures before they impact the node's functionality. By relaying specific messages for each type of problem, it allows you to respond quickly and effectively.
+- Ensure that the Monit web interface is only accessible through an SSH tunnel by restricting it to **localhost** in the Monit configuration.
+- Keep the system up to date and apply strong passwords to the Monit web interface.
+- Do not open unnecessary ports to the public; monitor traffic and firewall rules to reduce vulnerabilities.
+
+---
+
+## **Contributing**
+
+Feel free to submit pull requests or report issues. Contributions are welcome!
+
+## **License**
+
+This project is licensed under the MIT License.
+
+---
+
+### Monit Configuration (`monitrc`)
+
+Here’s the configuration section for securing the Monit web interface:
+
+```bash
+# Enable Monit's HTTP Interface
+set httpd port 2812
+    use address 127.0.0.1  # Restrict access to localhost
+    allow admin:monit      # Set a strong password
+    allow localhost        # Only allow local access
+```
+
+This setup ensures that the Monit page is only accessible via an SSH tunnel. **Do not** open the 2812 port to the public.
+
+---
+
+### **How to Share this Repository in the Group**
+Once everything is set up, share the repository link in your Matrix group along with a short message explaining the purpose of the repository and the installation steps. Here's an example message:
+
+---
+
+Hey everyone! 👋
+
+I’ve set up a monitoring bot for our **Supernova node** to track its performance and resource usage. The bot will send alerts in this Matrix room if any issues arise. You can find the full setup instructions here: [GitHub Repository Link]
+
+The bot monitors:
+- Block height progression
+- Memory, CPU, and disk usage
+- Network connectivity
+- Node connection status
