@@ -84,3 +84,51 @@ sudo service monit start
 ### 7. Additional Configuration
 - Modify the scripts (`supernova_alert.sh`, `check_block_height.sh`, etc.) according to your server setup.
 - Customize alerts, thresholds, and other settings based on your monitoring needs.
+
+---
+
+## Supernova Bot Monitoring Setup Overview
+
+The **Supernova Bot Monitoring Setup** is designed to monitor the health and performance of your **Supernova node** and key system metrics, and then automatically send alerts to a **Matrix room** when issues arise. The bot uses various scripts to track different aspects of the node's status and sends timely updates to keep everyone informed.
+
+### What Does It Monitor?
+
+1. **Node Block Progress**:
+   - The bot continuously checks if the **Supernova node** is processing new blocks.
+   - If the node gets stuck (i.e., the current block height does not increase), the bot will send a **warning** message to alert you that the node is stuck.
+   - Once the node recovers and starts progressing again, it will send a **recovery** message.
+
+2. **System Resource Usage**:
+   - **Memory Usage**: The bot monitors memory consumption. If memory usage exceeds a predefined threshold (90%), an alert will be sent. This helps prevent issues related to memory exhaustion.
+   - **CPU Load**: The bot also keeps track of the system’s CPU load. Alerts will be triggered if the CPU load exceeds specific thresholds for both 1-minute and 5-minute averages.
+   - **Disk Usage**: The bot monitors disk space usage and will send an alert if the disk space exceeds 90%. This prevents the node from running out of disk space, which can disrupt operations.
+
+3. **Network Connectivity**:
+   - The bot pings a known DNS server (`8.8.8.8` - Google DNS) to ensure that the server has internet connectivity. If it fails to connect, it will send an alert indicating a possible network issue.
+
+4. **Node Connection**:
+   - The bot checks the availability of the node’s RPC port (`26657`). If the RPC port is unresponsive, an alert will be sent, indicating the node might be offline or not communicating properly.
+
+### Messages You Will Receive
+
+The bot will relay the following types of messages to your **Matrix room**:
+
+1. **Node Status Alerts**:
+   - **⚠️ Warning: Node seems to be stuck at block `<block height>`** – Sent when the node stops processing new blocks.
+   - **✅ Node has recovered and is progressing. Current block: `<block height>`** – Sent when the node resumes block processing after being stuck.
+
+2. **System Alerts**:
+   - **⚠️ Memory usage is above 90%** – Sent if memory usage crosses the 90% threshold.
+   - **⚠️ High CPU load detected: 1 minute average** – Sent when the 1-minute CPU load average exceeds the threshold (default: > 4).
+   - **⚠️ Disk usage is above 90%** – Sent when disk usage exceeds 90%.
+   - **⚠️ Network connectivity issue: Unable to reach DNS server 8.8.8.8** – Sent when the server cannot connect to the internet.
+
+3. **Node Connection Alerts**:
+   - **⚠️ Supernova node is not responding on port 26657** – Sent when the node's RPC connection becomes unresponsive.
+   - **⚠️ Supernova node connection is offline** – Sent when there is an issue with the node connection itself.
+
+---
+
+## How It Helps
+
+This bot setup provides comprehensive monitoring of the node and system resources. It ensures the node is functioning optimally, sends real-time alerts for issues, and helps you address potential failures before they impact the node's functionality. By relaying specific messages for each type of problem, it allows you to respond quickly and effectively.
